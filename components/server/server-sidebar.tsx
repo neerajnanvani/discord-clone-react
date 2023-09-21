@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { ChannelType, MemberRole } from "@prisma/client";
 import { channel } from "diagnostics_channel";
 import { redirect } from "next/navigation";
+import ServerHeader from "./server-header";
+import { ServerWithMembersAndProfiles } from "@/types";
 
 interface ServerSidebarProps {
   serverId: string;
@@ -12,7 +14,7 @@ const ServerSidebar = async ({serverId}: ServerSidebarProps) => {
 
   const profile = await currentProfile();
 
-  const server = db.server.findUnique({
+  const server = await db.server.findUnique({
     where: {
       id: serverId,
     },
@@ -20,21 +22,22 @@ const ServerSidebar = async ({serverId}: ServerSidebarProps) => {
       channels: {
         orderBy: {
           createdAt: "asc",
-        }
+        },
       },
       members: {
         include: {
           profile: true,
         },
         orderBy: {
-          role: "asc"
+          role: "asc",
         }
       }
     }
-  })
+  });
 
 
-  if(!server) {
+
+  if(server === null) {
     return redirect("/");
   }
   
@@ -45,7 +48,7 @@ const ServerSidebar = async ({serverId}: ServerSidebarProps) => {
   let audioChannels = [];
   let videoChannels = [];
   let members = [];
-  let role = MemberRole.GUEST;
+  let role;
 
   if(Array.isArray(allChannels)) {
     textChannels = allChannels.filter((channel) => channel.type === ChannelType.TEXT);
@@ -66,7 +69,10 @@ const ServerSidebar = async ({serverId}: ServerSidebarProps) => {
       <div
         className="flex flex-col h-full text-primary w-full dark:bg-[#2B2D31] bg-[#f2f3f5]"
       >
-
+        <ServerHeader 
+          server={server}
+          role={role}
+        />
       </div>
   )
 }
